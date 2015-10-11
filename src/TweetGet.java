@@ -40,23 +40,28 @@ public final class TweetGet {
                 System.out.println(" user location:"+status.getUser().getLocation());
                 System.out.println(" Geo location:"+status.getGeoLocation());
                 
-                long id=status.getId();
-                String strId=String.valueOf(id);
-                String username=status.getUser().getScreenName();
-                String content=status.getText();
-                String userLocation=status.getUser().getLocation();
-                double geoLat=0;
-                double geoLng=0;
-                Date createdAt=status.getCreatedAt();
-                
                 if(status.getGeoLocation()!=null){
-                	geoLat=status.getGeoLocation().getLatitude();
-                	geoLng=status.getGeoLocation().getLongitude();
+                   System.out.println("Has Geo location:"+status.getGeoLocation());
+                	long id=status.getId();
+                    String strId=String.valueOf(id);
+                    String username=status.getUser().getScreenName();
+                    String content=status.getText();
+                    String userLocation=status.getUser().getLocation();
+                    double geoLat=0;
+                    double geoLng=0;
+                    Date createdAt=status.getCreatedAt();
+                    
+                    if(status.getGeoLocation()!=null){
+                    	geoLat=status.getGeoLocation().getLatitude();
+                    	geoLng=status.getGeoLocation().getLongitude();
+                    }
+                    
+                    Tweet t=new Tweet(strId, username,content, userLocation, geoLat,geoLng, createdAt);
+                    t.saveTweetToDynamoDB();
+                    System.out.println("save tweet");
                 }
                 
-                Tweet t=new Tweet(strId, username,content, userLocation, geoLat,geoLng, createdAt);
-                t.saveTweetToDynamoDB();
-                System.out.println("save tweet");
+                
                 //System.exit(0);
                 
             }
