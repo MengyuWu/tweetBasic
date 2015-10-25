@@ -20,8 +20,8 @@ import com.amazonaws.services.s3.model.CreateBucketRequest;
 
 public class AWSResourceSetup {
 
-	  	public static final String S3_BUCKET_NAME = "video-broadcast-mw2907";
-	    public static final String DYNAMODB_TABLE_NAME = "tweet-mw2907";
+	  	public static final String S3_BUCKET_NAME = "s3-test-nb2406";
+	    public static final String DYNAMODB_TABLE_NAME = "tweet-nb2406";
 
 	    public static final String MAIN_TOPIC_PATH = "topics/";
 	    public static final String FOLLOWING_PATH = "follows/";
@@ -68,7 +68,8 @@ public class AWSResourceSetup {
 	    }
 
 
-	    public static void main(String[] args) {
+	    @SuppressWarnings("deprecation")
+		public static void main(String[] args) {
 	        
 	        if ( !S3.doesBucketExist(S3_BUCKET_NAME) ) {
 	            S3.createBucket(new CreateBucketRequest(S3_BUCKET_NAME));
