@@ -99,30 +99,32 @@ public final class TweetGet {
     				} catch (ParserConfigurationException e) {
     				}
 
-    				if (sentiment.length() != 0 && category.length() != 0) {
-	    				
-    					// Log tweet details. User - Date - (Lat, Long) - Content - Sentiment - Category.
-	                    System.out.println(username
-	                    		+ " on " + createdAt.toString()
-	                    		+ " at (" + Math.round(geoLat) + ", " + Math.round(geoLng) + ")\n"
-	                    		+ content + " \n"
-	                    		+ "sentiment: " + sentiment + "; "
-	                    		+ "category: " + category);
-	                    System.out.println("-------------------------------------------");
-	                    
-	                    // Save tweet to DynamoDB.
-	                    Tweet t = new Tweet(strId, username, content, userLocation, geoLat, geoLng, createdAt);
-	                    t.setSentiment(sentiment);
-	                    t.setCategory(category);
-	                    t.saveTweetToDynamoDB();
-    				}
+
+					// Log tweet details. User - Date - (Lat, Long) - Content - Sentiment - Category.
+                    System.out.println(username
+                    		+ " on " + createdAt.toString()
+                    		+ " at (" + Math.round(geoLat) + ", " + Math.round(geoLng) + ")\n"
+                    		+ content);
+                    if (sentiment.length() != 0 && category.length() != 0) {
+                    	System.out.println("sentiment: " + sentiment + "; " + "category: " + category);
+                    } else {
+                    	System.out.println("no sentiment; no category");
+                    }
+
+                    System.out.println("-------------------------------------------");
+                    
+                    // Save tweet to DynamoDB.
+                    Tweet t = new Tweet(strId, username, content, userLocation, geoLat, geoLng, createdAt);
+                    t.setSentiment(sentiment);
+                    t.setCategory(category);
+                    t.saveTweetToDynamoDB();
                 }
                 
             }
 
             @Override
             public void onDeletionNotice(StatusDeletionNotice statusDeletionNotice) {
-                System.out.println("Got a status deletion notice id:" + statusDeletionNotice.getStatusId());
+//                System.out.println("Got a status deletion notice id:" + statusDeletionNotice.getStatusId());
             }
 
             @Override
