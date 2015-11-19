@@ -16,18 +16,27 @@ import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType;
 import com.amazonaws.services.dynamodbv2.util.Tables;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.CreateBucketRequest;
+import com.amazonaws.services.sns.AmazonSNSClient;
+import com.amazonaws.services.sns.model.CreateTopicRequest;
+import com.amazonaws.services.sns.model.CreateTopicResult;
+import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.model.CreateQueueRequest;
 
 
 public class AWSResourceSetup {
 
-	  	public static final String S3_BUCKET_NAME = "s3-test-nb2406";
-	    public static final String DYNAMODB_TABLE_NAME = "tweet-nb2406";
+	  	public static final String S3_BUCKET_NAME = "video-broadcast-mw2907";
+	    public static final String DYNAMODB_TABLE_NAME = "tweet-mw2907";
 
 	    public static final String MAIN_TOPIC_PATH = "topics/";
 	    public static final String FOLLOWING_PATH = "follows/";
 	    
 	    public static final String MAIN_TOPIC     = "topic";
 	    public static final String FOLLOWING = "following";
+	    
+	    public static final String SQS_QUEUE_NAME = "tweet-mw2907-queue";
+	    
+	    public static final String SNS_TOPIC= "tweetTopic";
 
 	    /*
 	     * The SDK provides several easy to use credentials providers.
@@ -52,8 +61,12 @@ public class AWSResourceSetup {
 	    public static final AmazonS3Client S3 = new AmazonS3Client(CREDENTIALS_PROVIDER);
 	    public static final AmazonDynamoDBClient DYNAMODB = new AmazonDynamoDBClient(CREDENTIALS_PROVIDER);
 	    public static final DynamoDBMapper DYNAMODB_MAPPER = new DynamoDBMapper(DYNAMODB, CREDENTIALS_PROVIDER);
-
-
+	    //Create SQS
+	    public static final AmazonSQSClient SQS = new AmazonSQSClient(CREDENTIALS_PROVIDER);
+	    //create SNSClinet
+	    public static final AmazonSNSClient SNS = new AmazonSNSClient(CREDENTIALS_PROVIDER);
+	    public static String SNS_TOPIC_ARN;
+	    
 	    static {
 	        /*
 	         * Set any other client options that you need here. For example, if you
@@ -64,12 +77,25 @@ public class AWSResourceSetup {
 	         * same region.
 	         */
 	        DYNAMODB.setRegion(REGION);
-	  
+	        SQS.setRegion(REGION);
+	        
+	      //create a topic
+	        CreateTopicRequest createReq = new CreateTopicRequest()
+	            .withName(SNS_TOPIC);
+	        CreateTopicResult createRes = SNS.createTopic(createReq);
+	        SNS_TOPIC_ARN=createRes.getTopicArn();
+	      //print TopicArn
+	        System.out.println(createReq);
+	        //get request id for CreateTopicRequest from SNS metadata		
+	        System.out.println("CreateTopicRequest - " + SNS.getCachedResponseMetadata(createReq));
 	    }
 
 
-	    @SuppressWarnings("deprecation")
-		public static void main(String[] args) {
+	    public static void main(String[] args) {
+	    	
+	    	String queueUrl = SQS.createQueue(new CreateQueueRequest(SQS_QUEUE_NAME)).getQueueUrl();
+	        System.out.println("Using Amazon SQS Queue: " + queueUrl);
+	        
 	        
 	        if ( !S3.doesBucketExist(S3_BUCKET_NAME) ) {
 	            S3.createBucket(new CreateBucketRequest(S3_BUCKET_NAME));

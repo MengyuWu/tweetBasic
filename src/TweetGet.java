@@ -1,3 +1,7 @@
+import static tweetBasic.AWSResourceSetup.DYNAMODB_MAPPER;
+import static tweetBasic.AWSResourceSetup.SQS_QUEUE_NAME;
+import static tweetBasic.AWSResourceSetup.SQS;
+
 import java.util.Date;
 
 import tweetBasic.Tweet;
@@ -11,6 +15,8 @@ import twitter4j.TwitterStreamFactory;
 import twitter4j.conf.ConfigurationBuilder;
 
 import com.alchemyapi.api.*;
+import com.amazonaws.services.sqs.model.GetQueueUrlRequest;
+import com.amazonaws.services.sqs.model.SendMessageRequest;
 
 import org.xml.sax.SAXException;
 import org.w3c.dom.Document;
@@ -84,40 +90,76 @@ public final class TweetGet {
                     }
                     
                     // Extract sentiment for a text string.
-                    Document doc;
-                    String category = "";
-                    String sentiment = "";
-    				try {
-    					String text = status.getText();
-    					doc = alchemyObj.TextGetTextSentiment(text);
-    					sentiment = getSentiment(doc);
-    					doc = alchemyObj.TextGetCategory(text);
-    					category = getCategory(doc);
-    				} catch (XPathExpressionException e) {
-    				} catch (IOException e) {
-    				} catch (SAXException e) {
-    				} catch (ParserConfigurationException e) {
-    				}
-
-
-					// Log tweet details. User - Date - (Lat, Long) - Content - Sentiment - Category.
-                    System.out.println(username
-                    		+ " on " + createdAt.toString()
-                    		+ " at (" + Math.round(geoLat) + ", " + Math.round(geoLng) + ")\n"
-                    		+ content);
-                    if (sentiment.length() != 0 && category.length() != 0) {
-                    	System.out.println("sentiment: " + sentiment + "; " + "category: " + category);
-                    } else {
-                    	System.out.println("no sentiment; no category");
-                    }
+//                    Document doc;
+//                    String category = "";
+//                    String sentiment = "";
+//    				try {
+//    					String text = status.getText();
+//    					doc = alchemyObj.TextGetTextSentiment(text);
+//    					sentiment = getSentiment(doc);
+//    					doc = alchemyObj.TextGetCategory(text);
+//    					category = getCategory(doc);
+//    				} catch (XPathExpressionException e) {
+//    				} catch (IOException e) {
+//    				} catch (SAXException e) {
+//    				} catch (ParserConfigurationException e) {
+//    				}
+//
+//
+//					// Log tweet details. User - Date - (Lat, Long) - Content - Sentiment - Category.
+//                    System.out.println(username
+//                    		+ " on " + createdAt.toString()
+//                    		+ " at (" + Math.round(geoLat) + ", " + Math.round(geoLng) + ")\n"
+//                    		+ content);
+//                    if (sentiment.length() != 0 && category.length() != 0) {
+//                    	System.out.println("sentiment: " + sentiment + "; " + "category: " + category);
+//                    } else {
+//                    	System.out.println("no sentiment; no category");
+//                    }
 
                     System.out.println("-------------------------------------------");
                     
                     // Save tweet to DynamoDB.
-                    Tweet t = new Tweet(strId, username, content, userLocation, geoLat, geoLng, createdAt);
-                    t.setSentiment(sentiment);
-                    t.setCategory(category);
-                    t.saveTweetToDynamoDB();
+                    if(status.getGeoLocation() != null){
+                    	Tweet t = new Tweet(strId, username, content, userLocation, geoLat, geoLng, createdAt);
+                        // t.setSentiment(sentiment);
+                        //t.setCategory(category);
+                         t.saveTweetToDynamoDB();
+                         
+                       //TODO: move all the work of alchemy to workers, after save the basic
+                         //content, send a message to SQS
+                         
+                         
+                         /*
+                          * Use Amazon SQS to send a message to the queue our worker processes
+                          * are monitoring.
+                          *
+                          * Another option in the SDK for sending messages to a queue is the
+                          * AmazonSQSBufferedAsyncClient. This client will buffer messages
+                          * locally so that they are batched together in groups when they're
+                          * sent. This means more efficient network communication with SQS
+                          * because less individual requests with single messages are being sent.
+                          * For high throughput applications this can not only help with
+                          * throughput, but can also decrease your SQS costs because of the
+                          * reduction in the amount of API calls. The tradeoff is that individual
+                          * messages can be slightly delayed while a full batch is created on the
+                          * client-side.
+                          */
+                         String queueUrl = SQS.getQueueUrl(new GetQueueUrlRequest(SQS_QUEUE_NAME)).getQueueUrl();
+                         System.out.println("send to sqs quereuurl:"+queueUrl);
+                         SQS.sendMessage(new SendMessageRequest(queueUrl, t.getId()));
+                         
+//                         Tweet tweetest = DYNAMODB_MAPPER.load(Tweet.class, t.getId());
+//                         if(tweetest!=null){
+//                         	System.out.println("not null");
+//                         }else{
+//                         	System.out.println(" null");
+//                         }
+                    }
+                    
+                    
+                    
+                    
                 }
                 
             }
