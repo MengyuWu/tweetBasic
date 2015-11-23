@@ -164,7 +164,7 @@ public class Worker extends Thread {
                     //publish a notification to indicate a new tweet is processed
                     PublishRequest publishReq = new PublishRequest()
                     .withTopicArn(SNS_TOPIC_ARN)
-                    .withMessage("tweet id " + tweet.getId());
+                    .withMessage(tweet.getId());
                     SNS.publish(publishReq);
                     System.out.println("publish notification");
                 Thread.sleep(1000);
