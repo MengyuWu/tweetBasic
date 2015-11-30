@@ -5,11 +5,17 @@ import static tweetBasic.AWSResourceSetup.SQS;
 import java.util.Date;
 
 import tweetBasic.Tweet;
+import twitter4j.FilterQuery;
+import twitter4j.Location;
+import twitter4j.ResponseList;
 import twitter4j.StallWarning;
 import twitter4j.Status;
 import twitter4j.StatusDeletionNotice;
 import twitter4j.StatusListener;
+import twitter4j.Trends;
+import twitter4j.Twitter;
 import twitter4j.TwitterException;
+import twitter4j.TwitterFactory;
 import twitter4j.TwitterStream;
 import twitter4j.TwitterStreamFactory;
 import twitter4j.conf.ConfigurationBuilder;
@@ -37,18 +43,6 @@ import javax.xml.xpath.XPathExpressionException;
  */
 public final class TweetGet {
 	
-	static AlchemyAPI alchemyObj;
-	
-	static{
-		try {
-			alchemyObj = AlchemyAPI.GetInstanceFromFile("api_key.txt");
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-	
     /**
      * Main entry of this application.
      *
@@ -61,12 +55,14 @@ public final class TweetGet {
      */
     public static void main(String[] args) throws TwitterException, FileNotFoundException, IOException, XPathExpressionException, SAXException, ParserConfigurationException {
     	
+		// String[] keywords = getTrends("New York");
+    	
     	ConfigurationBuilder cb = new ConfigurationBuilder();
         cb.setDebugEnabled(true)
-           .setOAuthConsumerKey("ZuBFtIjHubaHmaomVCN6HNRI5")
-           .setOAuthConsumerSecret("Ll0LZgKPly3QvIxIYMhtAxwxeUkleHc9Xya1Q5zAPxaga2wIpD")
-           .setOAuthAccessToken("3095412628-4kLyHeZWV3p4Swmqx0d2lGSfJbtNqPbl0VPuMta")
-           .setOAuthAccessTokenSecret("bKdTWWUVrtg1WtTog65t2XscxdvNbHszxDQLHBpZkutIG");
+           .setOAuthConsumerKey("xB127kA8Wn91LeZLJNHn7DQLD")
+           .setOAuthConsumerSecret("XEAEaQBWlDirhoT8noQmbbwDhbBjvjzQcEJIO80eZXIWj6nTKn")
+           .setOAuthAccessToken("605341080-dSZi4aYnavhiewli3oxRow2aLMpUdv58cqiM5Wmh")
+           .setOAuthAccessTokenSecret("OIDy5WNOgzcvl1NnbJIneZWTSos3v9CfOeR0NMok8eLCt");
          
         TwitterStream twitterStream = new TwitterStreamFactory(cb.build()).getInstance();
         StatusListener listener = new StatusListener() {
@@ -89,45 +85,21 @@ public final class TweetGet {
                     	geoLng=status.getGeoLocation().getLongitude();
                     }
                     
-                    // Extract sentiment for a text string.
-//                    Document doc;
-//                    String category = "";
-//                    String sentiment = "";
-//    				try {
-//    					String text = status.getText();
-//    					doc = alchemyObj.TextGetTextSentiment(text);
-//    					sentiment = getSentiment(doc);
-//    					doc = alchemyObj.TextGetCategory(text);
-//    					category = getCategory(doc);
-//    				} catch (XPathExpressionException e) {
-//    				} catch (IOException e) {
-//    				} catch (SAXException e) {
-//    				} catch (ParserConfigurationException e) {
-//    				}
-//
-//
-//					// Log tweet details. User - Date - (Lat, Long) - Content - Sentiment - Category.
-//                    System.out.println(username
-//                    		+ " on " + createdAt.toString()
-//                    		+ " at (" + Math.round(geoLat) + ", " + Math.round(geoLng) + ")\n"
-//                    		+ content);
-//                    if (sentiment.length() != 0 && category.length() != 0) {
-//                    	System.out.println("sentiment: " + sentiment + "; " + "category: " + category);
-//                    } else {
-//                    	System.out.println("no sentiment; no category");
-//                    }
+					// Log tweet details. User - Date - (Lat, Long) - Content - Sentiment - Category.
+                    System.out.println("[TweetGet] " + username
+                    		+ " on " + createdAt.toString()
+                    		+ " at (" + Math.round(geoLat) + ", " + Math.round(geoLng) + ")\n"
+                    		+ content);
 
                     System.out.println("-------------------------------------------");
                     
                     // Save tweet to DynamoDB.
-                    if(status.getGeoLocation() != null){
+                    if (status.getGeoLocation() != null){
                     	Tweet t = new Tweet(strId, username, content, userLocation, geoLat, geoLng, createdAt);
-                        // t.setSentiment(sentiment);
-                        //t.setCategory(category);
                          t.saveTweetToDynamoDB();
                          
-                       //TODO: move all the work of alchemy to workers, after save the basic
-                         //content, send a message to SQS
+                         // Move all the work of alchemy to workers: after saving the basic
+                         // content, send a message to SQS
                          
                          
                          /*
@@ -146,19 +118,11 @@ public final class TweetGet {
                           * client-side.
                           */
                          String queueUrl = SQS.getQueueUrl(new GetQueueUrlRequest(SQS_QUEUE_NAME)).getQueueUrl();
-                         System.out.println("send to sqs quereuurl:"+queueUrl);
+                         System.out.println("[TweetGet] send to sqs queue url: "+queueUrl);
                          SQS.sendMessage(new SendMessageRequest(queueUrl, t.getId()));
                          
-//                         Tweet tweetest = DYNAMODB_MAPPER.load(Tweet.class, t.getId());
-//                         if(tweetest!=null){
-//                         	System.out.println("not null");
-//                         }else{
-//                         	System.out.println(" null");
-//                         }
+
                     }
-                    
-                    
-                    
                     
                 }
                 
@@ -166,22 +130,22 @@ public final class TweetGet {
 
             @Override
             public void onDeletionNotice(StatusDeletionNotice statusDeletionNotice) {
-//                System.out.println("Got a status deletion notice id:" + statusDeletionNotice.getStatusId());
+               //System.out.println("[TweetGet] Got a status deletion notice id:" + statusDeletionNotice.getStatusId());
             }
 
             @Override
             public void onTrackLimitationNotice(int numberOfLimitedStatuses) {
-                System.out.println("Got track limitation notice:" + numberOfLimitedStatuses);
+                System.out.println("[TweetGet] Got track limitation notice:" + numberOfLimitedStatuses);
             }
 
             @Override
             public void onScrubGeo(long userId, long upToStatusId) {
-                System.out.println("Got scrub_geo event userId:" + userId + " upToStatusId:" + upToStatusId);
+                System.out.println("[TweetGet] Got scrub_geo event userId:" + userId + " upToStatusId:" + upToStatusId);
             }
 
             @Override
             public void onStallWarning(StallWarning warning) {
-                System.out.println("Got stall warning:" + warning);
+                System.out.println("[TweetGet] Got stall warning:" + warning);
             }
 
             @Override
@@ -190,18 +154,98 @@ public final class TweetGet {
             }
         };
         twitterStream.addListener(listener);
+        
+        // FilterQuery qry = new FilterQuery();
+        // qry.track(keywords);
+        // twitterStream.filter(qry);
+        
         twitterStream.sample();
     }
     
-    private static String getSentiment(Document doc) {
-    	Element parent = (Element) doc.getElementsByTagName("docSentiment").item(0);
-    	NodeList childList = parent.getElementsByTagName("type");
-    	String sentiment = childList.item(0).getTextContent();
-    	return sentiment;
+  
+    private static Integer getTrendLocationId(String locationName) {
+
+	    int idTrendLocation = 0;
+	
+	    try {
+	
+	    	ConfigurationBuilder cb = new ConfigurationBuilder();
+	        cb.setDebugEnabled(true)
+	           .setOAuthConsumerKey("xB127kA8Wn91LeZLJNHn7DQLD")
+	           .setOAuthConsumerSecret("XEAEaQBWlDirhoT8noQmbbwDhbBjvjzQcEJIO80eZXIWj6nTKn")
+	           .setOAuthAccessToken("605341080-dSZi4aYnavhiewli3oxRow2aLMpUdv58cqiM5Wmh")
+	           .setOAuthAccessTokenSecret("OIDy5WNOgzcvl1NnbJIneZWTSos3v9CfOeR0NMok8eLCt");
+	        
+	        TwitterFactory tf = new TwitterFactory(cb.build());
+	        Twitter twitter = tf.getInstance();
+	
+	        ResponseList<Location> locations;
+	        locations = twitter.getAvailableTrends();
+	        
+	
+	        for (Location location : locations) {
+		        if (location.getName().toLowerCase().equals(locationName.toLowerCase())) {
+		            idTrendLocation = location.getWoeid();
+		            break;
+		        }
+	        }
+	
+	        if (idTrendLocation > 0) {
+	        	return idTrendLocation;
+	        }
+	
+	        return null;
+	
+	    } catch (TwitterException te) {
+	        te.printStackTrace();
+	        System.out.println("Failed to get trends: " + te.getMessage());
+	        return null;
+	    }
+
     }
     
-    private static String getCategory(Document doc) {
-    	String category = doc.getElementsByTagName("category").item(0).getTextContent();
-    	return category;
+    private static String[] getTrends(String trendLocation) {
+	    try {
+	    	
+			ConfigurationBuilder cb = new ConfigurationBuilder();
+			cb.setDebugEnabled(true)
+			   .setOAuthConsumerKey("xB127kA8Wn91LeZLJNHn7DQLD")
+			   .setOAuthConsumerSecret("XEAEaQBWlDirhoT8noQmbbwDhbBjvjzQcEJIO80eZXIWj6nTKn")
+			   .setOAuthAccessToken("605341080-dSZi4aYnavhiewli3oxRow2aLMpUdv58cqiM5Wmh")
+			   .setOAuthAccessTokenSecret("OIDy5WNOgzcvl1NnbJIneZWTSos3v9CfOeR0NMok8eLCt");
+	
+			TwitterFactory tf = new TwitterFactory(cb.build());
+	        Twitter twitter = tf.getInstance();
+	
+	        ResponseList<Location> locations;
+	        locations = twitter.getAvailableTrends();
+	
+	        Integer idTrendLocation = getTrendLocationId(trendLocation);
+	
+	        if (idTrendLocation == null) {
+	        	System.out.println("Trend Location Not Found");
+	        	System.exit(0);
+	        }
+	
+	        Trends trends = twitter.getPlaceTrends(idTrendLocation);
+	        int numTrends = trends.getTrends().length;
+	        String[] keywords = new String[numTrends];
+	        
+	        for (int i = 0; i < numTrends; i++) {
+	        	String trend = trends.getTrends()[i].getName();
+	        	keywords[i] = trend;
+	        	System.out.println(trend);
+	        }
+	        	        
+	        return keywords;
+	
+	    } catch (TwitterException te) {
+	        te.printStackTrace();
+	        System.out.println("Failed to get trends: " + te.getMessage());
+	        System.exit(-1);
+	        return null;
+	    }
+	    
     }
+    
 }
