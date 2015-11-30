@@ -1,2 +1,5 @@
 AwsCredentials.properties
 *.~
+bin/*
+AWSResourceSetup.java
+Tweet.java
