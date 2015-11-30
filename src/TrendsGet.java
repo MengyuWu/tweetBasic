@@ -94,4 +94,49 @@ public final class TrendsGet {
 
     }
     
+    private static String[] getTrends(String trendLocation) {
+	    try {
+	    	
+			ConfigurationBuilder cb = new ConfigurationBuilder();
+			cb.setDebugEnabled(true)
+			   .setOAuthConsumerKey("xB127kA8Wn91LeZLJNHn7DQLD")
+			   .setOAuthConsumerSecret("XEAEaQBWlDirhoT8noQmbbwDhbBjvjzQcEJIO80eZXIWj6nTKn")
+			   .setOAuthAccessToken("605341080-dSZi4aYnavhiewli3oxRow2aLMpUdv58cqiM5Wmh")
+			   .setOAuthAccessTokenSecret("OIDy5WNOgzcvl1NnbJIneZWTSos3v9CfOeR0NMok8eLCt");
+	
+			TwitterFactory tf = new TwitterFactory(cb.build());
+	        Twitter twitter = tf.getInstance();
+	
+	        ResponseList<Location> locations;
+	        locations = twitter.getAvailableTrends();
+	
+	        Integer idTrendLocation = getTrendLocationId(trendLocation);
+	
+	        if (idTrendLocation == null) {
+	        	System.out.println("Trend Location Not Found");
+	        	System.exit(0);
+	        }
+	
+	        Trends trends = twitter.getPlaceTrends(idTrendLocation);
+	        int numTrends = trends.getTrends().length;
+	        String[] keywords = new String[numTrends];
+	        
+	        for (int i = 0; i < numTrends; i++) {
+	        	String trend = trends.getTrends()[i].getName();
+	        	keywords[i] = trend;
+	        	System.out.println(trend);
+	        }
+	        
+	        return keywords;
+	
+	    } catch (TwitterException te) {
+	        te.printStackTrace();
+	        System.out.println("Failed to get trends: " + te.getMessage());
+	        System.exit(-1);
+	        return null;
+	    }
+	    
+    }
+
 }
+
